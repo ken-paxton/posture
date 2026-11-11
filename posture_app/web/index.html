@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="posture-token" content="__TOKEN__">
+<title>Posture Coach</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="5" r="2.6" fill="currentColor"/><path d="M12 8.5v7M8 21l4-5.5 4 5.5M7 11.5h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <span>Posture Coach</span>
+  </div>
+  <div id="status-pill" class="pill pill-neutral" role="status" aria-live="polite"><span class="pill-icon" aria-hidden="true">•</span><span class="pill-text">Starting…</span></div>
+  <div class="topbar-actions">
+    <span class="local-badge" title="All processing happens on this computer. No images or data leave it.">🔒 100% local</span>
+    <button id="pause-btn" class="btn">Pause</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="card live">
+    <div class="card-head">
+      <h2>Live view</h2>
+      <label class="switch"><input type="checkbox" id="preview-toggle" checked> <span>Show camera</span></label>
+    </div>
+    <div class="preview-wrap">
+      <img id="preview" alt="Camera preview with tracked shoulders and head" hidden>
+      <div id="preview-off" class="preview-off">Camera preview hidden. Tracking continues.</div>
+      <div id="calib-overlay" class="calib-overlay" hidden>
+        <div class="calib-count" id="calib-count">3</div>
+        <div class="calib-label" id="calib-label">Get comfortable…</div>
+        <div class="progress"><div id="calib-progress"></div></div>
+      </div>
+    </div>
+    <div class="timers">
+      <div><span class="k">Out of range</span><span class="v" id="t-bad">–</span></div>
+      <div><span class="k">Same position</span><span class="v" id="t-still">–</span></div>
+      <div><span class="k">At screen</span><span class="v" id="t-present">–</span></div>
+      <div><span class="k">Profile</span><span class="v" id="t-profile">–</span></div>
+    </div>
+  </section>
+
+  <section class="card score-card">
+    <div class="card-head"><h2>Right now</h2><span class="muted small" id="perf"></span></div>
+    <div class="hero">
+      <div class="hero-num" id="score">–</div>
+      <div class="hero-sub" id="score-sub">posture score vs. your baseline</div>
+    </div>
+    <div id="advice" class="advice" hidden></div>
+    <ul id="rules" class="rules" aria-label="Posture measures"></ul>
+    <p class="muted small">Bars show how far each measure is from <em>your</em> calibrated posture; the tick marks the alert threshold. Only deviations held for a while trigger an alert. Brief movement is healthy.</p>
+  </section>
+
+  <section class="card calibrate">
+    <div class="card-head"><h2>Calibrate your baseline</h2></div>
+    <ol class="guidance" id="guidance">
+      <li>Sit all the way back so the chair supports your lower back; feet flat on the floor.</li>
+      <li>Let your shoulders relax down. Don't pull them back or puff your chest out.</li>
+      <li>Head balanced over your shoulders, chin level, eyes on the middle of the screen.</li>
+      <li>Screen at about arm's length, with its top line at or slightly below eye level.</li>
+      <li>Breathe normally. It should feel easy to hold, not effortful.</li>
+    </ol>
+    <div class="row">
+      <label for="profile-name">Profile</label>
+      <input id="profile-name" list="profile-list" value="sitting" maxlength="32">
+      <datalist id="profile-list"><option value="sitting"><option value="standing"></datalist>
+      <button id="calib-btn" class="btn btn-primary">Capture baseline</button>
+    </div>
+    <div id="calib-result" class="calib-result" hidden></div>
+    <div id="profiles" class="profiles"></div>
+  </section>
+
+  <section class="card history">
+    <div class="card-head"><h2>Progress</h2>
+      <button class="btn btn-ghost small" id="table-toggle" aria-pressed="false">Show table</button>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="tile-num" id="h-today">–</div><div class="tile-label">good posture today</div></div>
+      <div class="tile"><div class="tile-num" id="h-week">–</div><div class="tile-label">good posture, last 7 days</div></div>
+      <div class="tile"><div class="tile-num" id="h-alerts">–</div><div class="tile-label">alerts today</div></div>
+      <div class="tile"><div class="tile-num" id="h-corrected">–</div><div class="tile-label">corrected after alert</div></div>
+    </div>
+    <h3>Good-posture share by day</h3>
+    <div class="chart" id="daily-chart" aria-label="Daily good-posture percentage, last 14 days"></div>
+    <h3>Today, by minute</h3>
+    <div class="chart" id="today-chart" aria-label="Posture score by minute today"></div>
+    <div id="history-table" class="table-wrap" hidden></div>
+    <h3>Recent</h3>
+    <ul id="events" class="events"></ul>
+  </section>
+
+  <section class="card settings">
+    <div class="card-head"><h2>Settings</h2><span id="saved" class="muted small" hidden>Saved</span></div>
+    <form id="settings-form" class="settings-grid" onsubmit="return false">
+      <label>Sensitivity
+        <select name="sensitivity"><option value="gentle">Gentle</option><option value="standard">Standard</option><option value="strict">Strict</option></select>
+      </label>
+      <label>Alert after (seconds out of range)
+        <input type="number" name="alert_delay_s" min="5" max="600" step="5">
+      </label>
+      <label>Minimum gap between alerts (s)
+        <input type="number" name="alert_cooldown_s" min="30" max="3600" step="30">
+      </label>
+      <label>Movement reminder (min in one position, 0 = off)
+        <input type="number" name="movement_reminder_min" min="0" max="240" step="5">
+      </label>
+      <label>Break reminder (min at screen, 0 = off)
+        <input type="number" name="break_reminder_min" min="0" max="240" step="5">
+      </label>
+      <label>Analysis rate (frames/s)
+        <input type="number" name="analysis_fps" min="1" max="30" step="1">
+      </label>
+      <label class="check"><input type="checkbox" name="fade_feedback"> Fade feedback as you improve <span class="hint">(alerts wait longer when your weekly score is high, building your own body awareness)</span></label>
+      <label class="check"><input type="checkbox" name="desktop_notifications"> Desktop notifications</label>
+      <label class="check"><input type="checkbox" name="sound"> Soft chime with alerts (while this page is open)</label>
+      <label class="check"><input type="checkbox" name="auto_profile"> Switch sitting/standing profile automatically</label>
+      <label class="check"><input type="checkbox" name="mirror_preview"> Mirror preview</label>
+      <fieldset class="rules-fieldset"><legend>Alert on</legend><div id="rule-toggles"></div></fieldset>
+    </form>
+    <div class="row">
+      <button id="test-notify" class="btn">Test notification</button>
+      <button id="clear-history" class="btn btn-danger">Clear history</button>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>Everything (camera frames, landmarks, history) stays on this computer. Only per-minute summary numbers are saved. No images are stored.</p>
+  <p>Posture Coach is a feedback tool, not a medical device. There is no single "correct" posture; comfort and regular movement matter most. If pain persists, see a qualified health professional.</p>
+</footer>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>
